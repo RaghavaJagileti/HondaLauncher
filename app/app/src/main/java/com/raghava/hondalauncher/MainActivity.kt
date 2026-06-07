@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 class MainActivity : ComponentActivity() {
 
@@ -77,21 +79,39 @@ fun HondaSplash() {
 @Composable
 fun HondaDashboard() {
 
+    val currentTime = LocalTime.now()
+        .format(DateTimeFormatter.ofPattern("HH:mm"))
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp),
 
-        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
+        Spacer(modifier = Modifier.height(20.dp))
+
         Text(
-            text = "Honda Launcher",
+            text = "HONDA",
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "Hyderabad • 32°C",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = currentTime,
+            style = MaterialTheme.typography.headlineSmall
+        )
+
+        Spacer(modifier = Modifier.height(30.dp))
 
         Button(onClick = { }) {
             Text("Navigation")
