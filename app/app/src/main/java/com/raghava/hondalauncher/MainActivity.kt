@@ -24,6 +24,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 class MainActivity : ComponentActivity() {
 
@@ -63,13 +65,15 @@ fun HondaSplash() {
         contentAlignment = Alignment.Center
     ) {
 
-        Text(
-            text = "HONDA",
-            fontSize = 42.sp
+        Image(
+            painter = painterResource(
+                id = R.drawable.honda_logo
+            ),
+            contentDescription = "Honda Logo"
         )
+
     }
 }
-
 @Composable
 fun HondaDashboard() {
 
