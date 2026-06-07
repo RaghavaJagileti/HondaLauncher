@@ -28,6 +28,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 
 class MainActivity : ComponentActivity() {
 
@@ -81,7 +84,7 @@ fun HondaDashboard() {
 
     val currentTime = LocalTime.now()
         .format(DateTimeFormatter.ofPattern("HH:mm"))
-
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -113,7 +116,22 @@ fun HondaDashboard() {
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        Button(onClick = { }) {
+        Button(
+            onClick = {
+
+                val gmmIntentUri =
+                    Uri.parse("geo:0,0?q=Hyderabad")
+
+                val mapIntent =
+                    Intent(Intent.ACTION_VIEW, gmmIntentUri)
+
+                mapIntent.setPackage(
+                    "com.google.android.apps.maps"
+                )
+
+                context.startActivity(mapIntent)
+            }
+        ) {
             Text("Navigation")
         }
 
