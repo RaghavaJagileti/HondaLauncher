@@ -34,11 +34,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-
 import kotlinx.coroutines.delay
+
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.BatteryManager
+
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +94,40 @@ fun HondaSplash() {
 fun HondaDashboard() {
 
     val context = LocalContext.current
+
+    var batteryPercent by remember {
+        mutableStateOf(
+            getBatteryPercentage(context)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            batteryPercent =
+                getBatteryPercentage(context)
+
+            delay(30000)
+        }
+    }
+
+    var wifiConnected by remember {
+        mutableStateOf(
+            isWifiConnected(context)
+        )
+    }
+
+    LaunchedEffect(Unit) {
+
+        while (true) {
+
+            wifiConnected =
+                isWifiConnected(context)
+
+            delay(10000)
+        }
+    }
 
     val currentTime = LocalTime.now()
         .format(DateTimeFormatter.ofPattern("HH:mm"))
@@ -189,5 +227,59 @@ fun HondaDashboard() {
         ) {
             Text("Settings")
         }
+        Spacer(modifier = Modifier.height(30.dp))
+        Text(
+            text = "Battery: $batteryPercent%",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (wifiConnected)
+                "WiFi: Connected"
+            else
+                "WiFi: Disconnected",
+            style = MaterialTheme.typography.titleMedium)
+
     }
+}
+
+fun getBatteryPercentage(context: android.content.Context): Int {
+
+    val intent = context.registerReceiver(
+        null,
+        IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+    )
+
+    val level = intent?.getIntExtra(
+        BatteryManager.EXTRA_LEVEL,
+        -1
+    ) ?: -1
+
+    val scale = intent?.getIntExtra(
+        BatteryManager.EXTRA_SCALE,
+        -1
+    ) ?: -1
+
+    return ((level * 100) / scale.toFloat()).toInt()
+}
+
+fun isWifiConnected(
+    context: android.content.Context
+): Boolean {
+
+    val connectivityManager =
+        context.getSystemService(
+            android.content.Context.CONNECTIVITY_SERVICE
+        ) as ConnectivityManager
+
+    val network =
+        connectivityManager.activeNetwork ?: return false
+
+    val capabilities =
+        connectivityManager.getNetworkCapabilities(network)
+            ?: return false
+
+    return capabilities.hasTransport(
+        NetworkCapabilities.TRANSPORT_WIFI
+    )
 }
