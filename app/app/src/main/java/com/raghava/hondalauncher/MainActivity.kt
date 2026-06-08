@@ -1,47 +1,56 @@
 package com.raghava.hondalauncher
 
 import android.content.Intent
-import android.net.Uri
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.BatteryManager
 import android.os.Bundle
 import android.provider.Settings
-
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.delay
 
-import android.content.IntentFilter
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.os.BatteryManager
+import androidx.compose.foundation.layout.fillMaxWidth
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import android.bluetooth.BluetoothAdapter
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+
+import com.raghava.hondalauncher.weather.RetrofitClient
+
+import androidx.core.net.toUri
+
+
 
 class MainActivity : ComponentActivity() {
 
@@ -90,6 +99,7 @@ fun HondaSplash() {
 
     }
 }
+
 @Composable
 fun HondaDashboard() {
 
@@ -102,7 +112,6 @@ fun HondaDashboard() {
     }
 
     LaunchedEffect(Unit) {
-
         while (true) {
 
             batteryPercent =
@@ -118,8 +127,20 @@ fun HondaDashboard() {
         )
     }
 
+    var bluetoothEnabled by remember {
+        mutableStateOf(isBluetoothEnabled())
+    }
     LaunchedEffect(Unit) {
+        while (true) {
 
+            bluetoothEnabled =
+                isBluetoothEnabled()
+
+            delay(5000)
+        }
+    }
+
+    LaunchedEffect(Unit) {
         while (true) {
 
             wifiConnected =
@@ -129,117 +150,345 @@ fun HondaDashboard() {
         }
     }
 
-    val currentTime = LocalTime.now()
-        .format(DateTimeFormatter.ofPattern("HH:mm"))
+    var currentTime by remember {
+        mutableStateOf(
+            LocalTime.now()
+                .format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+        )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+    }
+    var temperature by remember {
+        mutableStateOf("--")
+    }
 
-        horizontalAlignment = Alignment.CenterHorizontally
+    var weatherDescription by remember {
+        mutableStateOf("Loading...")
+    }
+    var speed by remember {
+        mutableStateOf("0")
+    }
+
+    var rpm by remember {
+        mutableStateOf("0")
+    }
+
+    var fuel by remember {
+        mutableStateOf("80")
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+
+            currentTime =
+                LocalTime.now()
+                    .format(
+                        DateTimeFormatter.ofPattern("HH:mm:ss")
+                    )
+
+            delay(1000)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+
+        try {
+
+            weatherDescription = "Calling API..."
+
+            val response =
+                RetrofitClient.api.getWeather(
+                    city = "Hyderabad",
+                    apiKey = "a47a2a3b1eafa79797ad7391530b35f6"
+                )
+
+            temperature =
+                response.main.temp.toInt().toString()
+
+            weatherDescription =
+                response.weather[0].description
+
+        } catch (e: Exception) {
+
+            weatherDescription =
+                e.message ?: "Error"
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "HONDA",
-            style = MaterialTheme.typography.headlineMedium
+        Image(
+            painter = painterResource(R.drawable.honda_bg),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
 
-        Text(
-            text = "Hyderabad • 32°C",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = currentTime,
-            style = MaterialTheme.typography.headlineSmall
-        )
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Button(
-            onClick = {
-
-                val intent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("google.navigation:q=Hyderabad")
-                )
-
-                intent.setPackage(
-                    "com.google.android.apps.maps"
-                )
-
-                context.startActivity(intent)
-            }
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Navigation")
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            // TOP STATUS BAR
 
-        Button(
-            onClick = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
 
-                val launchIntent =
-                    context.packageManager
-                        .getLaunchIntentForPackage(
-                            "com.spotify.music"
-                        )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
 
-                if (launchIntent != null) {
-                    context.startActivity(launchIntent)
+                    Text(
+                        text = "HONDA",
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+
+                    Text(
+                        text = "Gooty, AP",
+                        color = Color.LightGray
+                    )
+                }
+
+                Text(
+                    text = currentTime,
+                    color = Color.White,
+                    style = MaterialTheme.typography.displaySmall,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+
+                    Text(
+                        text = "🔋 $batteryPercent%",
+                        color = Color.Green
+                    )
+
+                    Text(
+                        text =
+                            if (wifiConnected)
+                                "📶 Connected"
+                            else
+                                "❌ Offline",
+                        color = Color.White
+                    )
+
+                    Text(
+                        text =
+                            if (bluetoothEnabled)
+                                "🔵 Bluetooth"
+                            else
+                                "⚫ Bluetooth Off",
+                        color = Color.White
+                    )
                 }
             }
-        ) {
-            Text("Music")
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
 
-        Button(
-            onClick = {
+            Spacer(
+                modifier = Modifier.height(16.dp)
+            )
 
-                val intent =
-                    Intent("android.media.action.IMAGE_CAPTURE")
+            // WEATHER
 
-                context.startActivity(intent)
+            Text(
+                text = "Temp: $temperature°C",
+                color = Color.Yellow,
+                style = MaterialTheme.typography.headlineSmall
+            )
+
+            Text(
+                text = weatherDescription,
+                color = Color.Cyan,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
+
+            // VEHICLE STATUS CARD
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Color(0xCC202020),
+                        RoundedCornerShape(16.dp)
+                    )
+                    .padding(16.dp)
+            ) {
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Text(
+                        text = "🚗 Speed : $speed km/h",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Text(
+                        text = "⚙ RPM : $rpm",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Text(
+                        text = "⛽ Fuel : $fuel %",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    Text(
+                        text = "✅ Engine OK",
+                        color = Color.Green,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
             }
-        ) {
-            Text("Camera")
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+            Spacer(
+                modifier = Modifier.height(40.dp)
+            )
 
-        Button(
-            onClick = {
 
-                val intent =
-                    Intent(Settings.ACTION_SETTINGS)
+            // FIRST ROW
 
-                context.startActivity(intent)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    24.dp,
+                    Alignment.CenterHorizontally
+                )
+            ) {
+
+                DashboardTile(
+                    title = "🗺 Navigation"
+                ) {
+
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        "google.navigation:q=Hyderabad".toUri()
+                    )
+
+                    intent.setPackage(
+                        "com.google.android.apps.maps"
+                    )
+
+                    context.startActivity(intent)
+                }
+
+                DashboardTile(
+                    title = "🎵 Music"
+                ) {
+
+                    val launchIntent =
+                        context.packageManager
+                            .getLaunchIntentForPackage(
+                                "com.spotify.music"
+                            )
+
+                    if (launchIntent != null) {
+                        context.startActivity(launchIntent)
+                    }
+                }
+                DashboardTile(
+                    title = "🚗 OBD"
+                ) {
+
+                    val intent =
+                        Intent(
+                            context,
+                            ObdActivity::class.java
+                        )
+
+                    context.startActivity(intent)
+                }
             }
-        ) {
-            Text("Settings")
-        }
-        Spacer(modifier = Modifier.height(30.dp))
-        Text(
-            text = "Battery: $batteryPercent%",
-            style = MaterialTheme.typography.titleMedium
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
+
+            // SECOND ROW
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    24.dp,
+                    Alignment.CenterHorizontally
+                )
+            ) {
+
+                DashboardTile(
+                    title = "📷 Camera"
+                ) {
+
+                    val intent =
+                        Intent("android.media.action.IMAGE_CAPTURE")
+
+                    context.startActivity(intent)
+                }
+
+                DashboardTile(
+                    title = "⚙ Settings"
+                ) {
+
+                    val intent =
+                        Intent(Settings.ACTION_SETTINGS)
+
+                    context.startActivity(intent)
+                }
+            }   // End Row
+
+        }       // End Column
+
+    }       // End Box
+
+}       // End HondaDashboard
+
+@Composable
+fun DashboardTile(
+    title: String,
+    onClick: () -> Unit
+) {
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        onClick = onClick,
+        modifier = Modifier
+            .width(420.dp)
+            .height(240.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFB00020)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 12.dp
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = if (wifiConnected)
-                "WiFi: Connected"
-            else
-                "WiFi: Disconnected",
-            style = MaterialTheme.typography.titleMedium)
+    ) {
 
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+
+            Text(
+                text = title,
+                color = Color.White,
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
     }
 }
 
@@ -283,3 +532,9 @@ fun isWifiConnected(
         NetworkCapabilities.TRANSPORT_WIFI
     )
 }
+
+@Suppress("DEPRECATION")
+fun isBluetoothEnabled(): Boolean {
+    return BluetoothAdapter.getDefaultAdapter()?.isEnabled ?: false
+}
+
